@@ -188,12 +188,6 @@ public class Converter {
             fw.write(yaml_akta);
             fw.flush();
             fw.close();
-
-            fw = new FileWriterWithEncoding(
-                    new File("output/akt.json"), StandardCharsets.UTF_8);
-            fw.write(jsonObj.toString(4));
-            fw.flush();
-            fw.close();
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
