@@ -91,12 +91,14 @@ public class Converter {
 
             String zayavitel = ((JSONObject) data.get("zayavitelq")).get("display_name").toString();
 
-            List<String> vyyavl_narusheniya = new ArrayList<>();
-            for(int i = 0; i < ((JSONArray) data.get("ls_narusheniya")).length(); i++) {
-                String narusheniye = ((JSONObject) ((JSONObject) ((JSONArray) data.get("ls_narusheniya")).get(i))
-                        .get("kod")).get("value").toString();
-                vyyavl_narusheniya.add(narusheniye);
-            }
+            //List<String> vyyavl_narusheniya = new ArrayList<>();
+//            for(int i = 0; i < ((JSONArray) data.get("ls_narusheniya")).length(); i++) {
+//                String narusheniye = ((JSONObject) ((JSONObject) ((JSONArray) data.get("ls_narusheniya")).get(i))
+//                        .get("kod")).get("value").toString();
+//                vyyavl_narusheniya.add(narusheniye);
+//            }
+
+            JSONArray vyyavl_narusheniya = (JSONArray) data.get("ls_narusheniya");
 
             //vyyavl_narusheniya.stream().forEach(System.out::println);
 
@@ -134,6 +136,49 @@ public class Converter {
             ((JSONObject) data.get("obshhaya_prodolzhitelqnostq_proverki_tip")).put("id", 1);
             ((JSONObject) data.get("obshhaya_prodolzhitelqnostq_proverki_tip")).put("display_name", "рабочих дней");
 
+            if(vyyavl_narusheniya.length() > 0) {
+                ((JSONObject) data.get("vyhevlennye_narusheniya_tip")).put("id", 1);
+                ((JSONObject) data.get("vyhevlennye_narusheniya_tip")).put("display_name", "выявлено");
+                JSONArray spisok_narushenii = data.getJSONArray("ls_s20");
+
+                Iterator<Object> iter = vyyavl_narusheniya.iterator();
+                while (iter.hasNext()) {
+
+                    JSONObject iteriruyemoye_narusheniye = (JSONObject) iter.next();
+                    JSONObject obyekt_narusheniya = new JSONObject();
+
+                    int index = 0;
+                    for(int j = 0; j < spisok_narushenii.length(); j++) {
+                        JSONObject o = (JSONObject) spisok_narushenii.get(j);
+                        String kod_iz_spiska = ((JSONObject) o.get("kod")).get("value").toString();
+                        String kod_iz_iteratsii = ((JSONObject) iteriruyemoye_narusheniye.get("kod"))
+                                .get("value").toString();
+                        if(kod_iz_iteratsii.equals(kod_iz_spiska)) {
+                            index = j;
+                            break;
+                        }
+                    }
+
+                    JSONObject tipovoe_narushenie = new JSONObject();
+                    tipovoe_narushenie.put("id", ((JSONObject) iteriruyemoye_narusheniye.get("kod"))
+                            .get("value"));
+                    tipovoe_narushenie.put("display_name", ((JSONObject) iteriruyemoye_narusheniye.get("kod"))
+                            .get("value"));
+                    obyekt_narusheniya.put("tipovoe_narushenie", tipovoe_narushenie);
+
+                    JSONObject naimenovaniye_narusheniya = new JSONObject();
+                    naimenovaniye_narusheniya.put("value", ((JSONObject) ((JSONObject) spisok_narushenii.get(index))
+                            .get("narushenie")).get("value"));
+                    obyekt_narusheniya.put("naim_narush", naimenovaniye_narusheniya);
+
+                    JSONObject normativnyi_akt_narusheniya = new JSONObject();
+                    normativnyi_akt_narusheniya.put("value", ((JSONObject) ((JSONObject) spisok_narushenii.get(index))
+                            .get("npa")).get("value"));
+                    obyekt_narusheniya.put("norm_akt_narush", normativnyi_akt_narusheniya);
+
+                    ((JSONArray) data.get("vyhyavlennyhe_narusheniya")).put(obyekt_narusheniya);
+                }
+            }
             //System.out.println(jsonObj.toString(4));
 
             yaml_akta = convertJsonToYaml(jsonObj.toString(4));
@@ -141,6 +186,12 @@ public class Converter {
             FileWriterWithEncoding fw = new FileWriterWithEncoding(
                     new File(output_akt), StandardCharsets.UTF_8);
             fw.write(yaml_akta);
+            fw.flush();
+            fw.close();
+
+            fw = new FileWriterWithEncoding(
+                    new File("output/akt.json"), StandardCharsets.UTF_8);
+            fw.write(jsonObj.toString(4));
             fw.flush();
             fw.close();
         } catch (Exception e) {
